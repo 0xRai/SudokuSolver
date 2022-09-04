@@ -99,14 +99,20 @@ public class Program
 
     public static bool SolveRow(int[,] board)
     {
-        int[] numCounts = CountMatrix();
-        for (int i = 0; i < 9; i++)
-        {
-            for (int j = 0; j < 9; j++)
-            {
-                numCounts[board[i, j]]++;
-            }
-        }
+        int[,] numCounts = CountMatrix();
+        
+        /*
+         Original plan was to solve by individual rows, columns, and squares; however, this will not solve
+         the puzzle, atleast not in a quicker manner. New plan is to check an index's related row, column, and square 
+         to make the best possible choice. 
+         */
+        // for (int i = 0; i < 9; i++)
+        // {
+        //     for (int j = 0; j < 9; j++)
+        //     {
+        //         numCounts[board[i, j]]++;
+        //     }
+        // }
 
         return false;
     }
@@ -121,13 +127,16 @@ public class Program
         return false;
     }
 
-    public static int[] CountMatrix()
+    public static int[,] CountMatrix()
     {
         /*
          Creates array. Instead of using 2d array for {key, value},
          using single array where the index doubles as the key
          */
-        int[] numCount = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        int[,] numCount = { {0,0,0},{0,0,0},{0,0,0},
+                            {0,0,0},{0,0,0},{0,0,0},
+                            {0,0,0},{0,0,0},{0,0,0},
+                            {0,0,0} };
         return numCount;
     }
 }
