@@ -2,21 +2,21 @@
 
 public class Program
 {
+    private static readonly int[,] Board = NewBoard();
     public static void Main(string[] args)
     {
-        //create board
-
-        int[,] board = NewBoard();
 
         //show empty board
-        PrintBoard(board);
+        PrintBoard(Board);
 
         //user inputs known numbers
         // InputNumbers(board);
-        Seed(board);
-        PrintBoard(board);
+        Seed(Board);
+        PrintBoard(Board);
         //perform the magic
-        SolveBoard(board);
+        SolveBoard(Board);
+        Console.WriteLine("SOLVED!");
+        PrintBoard(Board);
 
     }
 
@@ -41,6 +41,14 @@ public class Program
         {
             for (int j = 0; j < 9; j++)
             {
+                if (j == 3 || j == 6)
+                {
+                    Console.Write("| ");
+                }
+                if ((i == 3 && j == 0) || (i == 6 && j == 0) )
+                {
+                    Console.WriteLine("- - - + - - - + - - - ");
+                }
                 if (j == 8)
                 {
                     Console.WriteLine($"{board[i, j]}");
@@ -62,15 +70,14 @@ public class Program
         {
             for (int j = 0; j < 9; j++)
             {
-                bool isConverted = false;
-                string? userInput = "";
+                bool isConverted;
                 do
                 {
                     Console.Write($"What is the number for [{i + 1},{j + 1}]: ");
-                    userInput = Console.ReadLine();
+                    var userInput = Console.ReadLine();
                     int num;
                     isConverted = int.TryParse(userInput, out num);
-                    if (isConverted && num < 10 && num >= 0)
+                    if (isConverted && num is < 10 and >= 0)
                     {
                         board[i, j] = num;
                         Console.Write("\n");
@@ -92,18 +99,46 @@ public class Program
 
     private static void SolveBoard(int[,] board)
     {
-        //row
-        int x = 0;
-        //column
-        int y = 0;
-        //square
-        int z = 0;
-        int iterations = 1;
-        int[,] newBoard = board;
-        int[,] numCounts = CountMatrix();
-        CountRow(newBoard, numCounts, x);
-        CountCol(newBoard, numCounts, y);
-        CountSquare(newBoard, numCounts, z);
+
+        int iteration = 1;
+        while (!IsBoardFull(board))
+        {
+            Console.WriteLine(iteration);
+            int[,] newBoard = board;
+        
+            //Find the first zero number
+            for (int i = 0; i < 9; i++)
+            {
+                for (int j = 0; j < 9; j++)
+                {
+                    if (newBoard[i,j] != 0) continue;
+                    //Calculate number's square quadrant
+                    int rowIndex = i;
+                    int colIndex = j;
+                    int squareIndex = NumberSquareQuadrant(rowIndex, colIndex);
+
+                    int[,] numTable = CountMatrix();
+                    CountRow(newBoard, numTable, rowIndex);
+                    CountCol(newBoard, numTable, rowIndex);
+                    CountSquare(newBoard, numTable, squareIndex);
+                
+                    //Find the first non-zero in the number table
+                    for (int k = 1; k < 10; k++)
+                    {
+                        if (numTable[k, 0] == 0 && numTable[k, 1] == 0 && numTable[k, 2] == 0)
+                        {
+                            newBoard[i, j] = k;
+                            numTable[k, 0]++;
+                            numTable[k, 1]++;
+                            numTable[k, 2]++;
+                            break;
+                        }
+                    }
+                }
+            }
+            PrintBoard(newBoard);
+            iteration++;
+        }
     }
 
     private static void CountRow(int[,] board, int[,]numCounts, int row)
@@ -129,15 +164,33 @@ public class Program
         int y = 0;
         switch (square)
         {  
-            case 0: x = 0; y = 0; break;
-            case 1: x = 3; y = 0; break;
-            case 2: x = 6; y = 0; break;
-            case 3: x = 0; y = 3; break;
-            case 4: x = 3; y = 3; break;
-            case 5: x = 6; y = 3; break;
-            case 6: x = 0; y = 6; break;
-            case 7: x = 3; y = 6; break;
-            case 8: x = 6; y = 6; break;
+            case 0: 
+                x = 0;
+                y = 0; break;
+            case 1: 
+                x = 0;
+                y = 3; break;
+            case 2:
+                x = 0;
+                y = 6; break;
+            case 3:
+                x = 3;
+                y = 0; break;
+            case 4:
+                x = 3;
+                y = 3; break;
+            case 5:
+                x = 3;
+                y = 6; break;
+            case 6: 
+                x = 6;
+                y = 0; break;
+            case 7: 
+                x = 6;
+                y = 3; break;
+            case 8:
+                x = 6;
+                y = 6; break;
             
         }
 
@@ -152,11 +205,9 @@ public class Program
 
     public static int[,] CountMatrix()
     {
-        /*
-         Creates array. Instead of using 2d array for {key, value},
-         using single array where the index doubles as the key
-         */
-        int[,] numCount = { {0,0,0},{0,0,0},{0,0,0},
+         //                      x y z
+         //                     {0,0,0}
+         int[,] numCount = { {0,0,0},{0,0,0},{0,0,0},
                             {0,0,0},{0,0,0},{0,0,0},
                             {0,0,0},{0,0,0},{0,0,0},
                             {0,0,0} };
@@ -165,16 +216,6 @@ public class Program
 
     public static void Seed(int[,] board)
     {
-        // Random seed = new Random();
-        //
-        // for (int i = 0; i < 9; i++)
-        // {
-        //     for (int j = 0; j < 9; j++)
-        //     {
-        //         board[i,j] = seed.Next(0, 9);
-        //     }
-        // }
-        
         //Hard coded seed
         board[0, 2] = 4; board[0, 6] = 8; board[1, 0] = 7;
         board[1, 1] = 2; board[1, 3] = 3; board[1, 4] = 5; 
@@ -189,5 +230,28 @@ public class Program
         board[7, 5] = 6; board[7, 7] = 3; board[7, 8] = 1;
         board[8, 3] = 2; board[8, 7] = 6; board[8, 8] = 8;
 
+    }
+
+    public static int NumberSquareQuadrant(int x, int y)
+    {
+        int i = x / 3;
+        int j = y / 3;
+        return j + (i*3);
+    }
+
+    public static bool IsBoardFull(int[,] board)
+    {
+        for (int i = 0; i < 9; i++)
+        {
+            for (int j = 0; j < 9; j++)
+            {
+                if (board[i, j] == 0)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 }
