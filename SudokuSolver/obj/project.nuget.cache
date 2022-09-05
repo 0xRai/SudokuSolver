@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "fuAADx72EAsfgeAysvWlY361oCTCohPz7SCV9W5kqU70FYAeVjXUZBqUo91gMaW1whpfxuFGfX0BWkAnFWalkA==",
+  "dgSpecHash": "rTzKjsJgWI6eMMAq47G6quTGSU0oE7AeNuMlYNhKGrJ+B6BvX60wLgdtBBHkm21Q62dzmmc0CwQOv9s2wpwMbw==",
   "success": true,
-  "projectFilePath": "C:\\Users\\Rai\\RiderProjects\\SudokuSolver\\SudokuSolver\\SudokuSolver.csproj",
+  "projectFilePath": "/Users/roberthardy/Documents/Github/SudokuSolver/SudokuSolver/SudokuSolver.csproj",
   "expectedPackageFiles": [],
   "logs": []
 }
