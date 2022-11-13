@@ -11,12 +11,33 @@ public class Program
 
         //user inputs known numbers
         // InputNumbers(board);
+        Console.WriteLine("Validating board...");
+        bool isSolvable = ValidateBoard(Board);
+        
+        
+        //Verifies if user did not inputted a VALID
+        
         Seed(Board);
         PrintBoard(Board);
-        //perform the magic
-        SolveBoard(Board);
-        Console.WriteLine("SOLVED!");
-        PrintBoard(Board);
+        Console.WriteLine("Solving...");
+        int[,] solvedBoard = SolveBoard();
+        isSolvable = ValidateBoard(solvedBoard);
+        if (isSolvable)
+        {
+            Console.BackgroundColor = ConsoleColor.Green;
+            Console.Write("SOLVED!");
+            Console.ResetColor();
+            Console.WriteLine();
+            PrintBoard(Board);
+        }
+        else
+        {
+            Console.BackgroundColor = ConsoleColor.Red;
+            Console.Write("Board is not solvable!");
+            Console.ResetColor();
+            Console.WriteLine();
+        }
+        
 
     }
 
@@ -30,7 +51,6 @@ public class Program
                 board[i, j] = 0;
             }
         }
-
         return board;
     }
 
@@ -51,11 +71,31 @@ public class Program
                 }
                 if (j == 8)
                 {
-                    Console.WriteLine($"{board[i, j]}");
+                    if (board[i, j] == 0)
+                    {
+                        Console.BackgroundColor = ConsoleColor.DarkRed;
+                        Console.Write($"{board[i, j]}");
+                        Console.ResetColor();
+                        Console.WriteLine();
+                    }
+                    else
+                    {
+                        Console.WriteLine($"{board[i, j]}");
+                    }
                 }
                 else
                 {
-                    Console.Write($"{board[i, j]} ");
+                    if (board[i, j] == 0)
+                    {
+                        Console.BackgroundColor = ConsoleColor.DarkRed;
+                        Console.Write($"{board[i, j]}");
+                        Console.ResetColor();
+                        Console.Write(" ");
+                    }
+                    else
+                    {
+                        Console.Write($"{board[i, j]} ");
+                    }
                 }
             }
         }
@@ -96,68 +136,51 @@ public class Program
 
         Console.WriteLine("Solving Board...");
     }
-
-    private static void SolveBoard(int[,] board)
+    /// <summary>
+    /// Function <c>SolveBoard</c> takes the inputted board, transfers to the Root Node and solves through
+    /// Binary Search Tree
+    /// </summary>
+    private static int[,] SolveBoard()
     {
-
-        int iteration = 1;
-        while (!IsBoardFull(board))
+        //Creates the root node from the input and then sets to start from beginning
+        //(x: 0, y: 0) and then set pointers to child's index (x: 0, y: 1)
+        Node root = new Node
         {
-            Console.WriteLine(iteration);
-            int[,] newBoard = board;
+            boardState = Board
+        };
+        root.Index.X = 0;
+        root.Index.Y = 0;
+        return Iterate(root);
         
-            //Find the first zero number
-            for (int i = 0; i < 9; i++)
+    }
+
+    private static bool isRowValid(int[,] board, int value, int row)
+    {
+        for (int i = 0; i < 9; i++)
+        {
+            if (board[row, i] == value)
             {
-                for (int j = 0; j < 9; j++)
-                {
-                    if (newBoard[i,j] != 0) continue;
-                    //Calculate number's square quadrant
-                    int rowIndex = i;
-                    int colIndex = j;
-                    int squareIndex = NumberSquareQuadrant(rowIndex, colIndex);
-
-                    int[,] numTable = CountMatrix();
-                    CountRow(newBoard, numTable, rowIndex);
-                    CountCol(newBoard, numTable, rowIndex);
-                    CountSquare(newBoard, numTable, squareIndex);
-                
-                    //Find the first non-zero in the number table
-                    for (int k = 1; k < 10; k++)
-                    {
-                        if (numTable[k, 0] == 0 && numTable[k, 1] == 0 && numTable[k, 2] == 0)
-                        {
-                            newBoard[i, j] = k;
-                            numTable[k, 0]++;
-                            numTable[k, 1]++;
-                            numTable[k, 2]++;
-                            break;
-                        }
-                    }
-                }
+                return false;
             }
-            PrintBoard(newBoard);
-            iteration++;
         }
+
+        return true;
     }
 
-    private static void CountRow(int[,] board, int[,]numCounts, int row)
+    public static bool isColValid(int[,] board, int value, int col)
     {
         for (int i = 0; i < 9; i++)
         {
-            numCounts[board[row, i],0]++;
+            if (board[i, col] == value)
+            {
+                return false;
+            }
         }
+
+        return true;
     }
 
-    public static void CountCol(int[,] board, int[,]numCounts, int col)
-    {
-        for (int i = 0; i < 9; i++)
-        {
-            numCounts[board[i, col],1]++;
-        }
-    }
-
-    public static void CountSquare(int[,] board, int[,]numCounts, int square)
+    public static bool isSquareValid(int[,] board, int value, int square)
     {
         //Square's x and y
         int x = 0;
@@ -198,22 +221,27 @@ public class Program
         {
             for (int j = y; j < y + 3; j++)
             {
-                numCounts[board[i, j],2]++;
+                if (board[i, j] == value)
+                {
+                    return false;
+                }
             }
         }
+
+        return true;
     }
 
-    public static int[,] CountMatrix()
+    public static bool ValidateValue(int[,] board, int value, int row, int col)
     {
-         //                      x y z
-         //                     {0,0,0}
-         int[,] numCount = { {0,0,0},{0,0,0},{0,0,0},
-                            {0,0,0},{0,0,0},{0,0,0},
-                            {0,0,0},{0,0,0},{0,0,0},
-                            {0,0,0} };
-        return numCount;
+        if (!isColValid(board, value, col)||
+            !isRowValid(board, value, row)||
+            !isSquareValid(board, value, NumberSquareQuadrant(row, col)))
+        {
+            return false;
+        }
+        return true;
     }
-
+    
     public static void Seed(int[,] board)
     {
         //Hard coded seed
@@ -254,4 +282,96 @@ public class Program
 
         return true;
     }
+
+    public static bool ValidateBoard(int[,] board)
+    {
+        for (int i = 0; i < 9; i++)
+        {
+            for (int j = 0; j < 9; j++)
+            {
+                if (!isColValid(board, board[i, j], j) ||
+                    !isRowValid(board, board[i, j], i) ||
+                    !isSquareValid(board, board[i, j], NumberSquareQuadrant(i, j)))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    public static int[,] Iterate(Node root)
+    {
+        Console.WriteLine($"Iterating at {root.Index.X}, {root.Index.Y}");
+        //Check to see if the root was solved
+        if (root.IsSolved)
+        {
+            return root.boardState;
+        }
+        //Create a new list of child Nodes
+        if (root.ChildNodes == null)
+        {
+            root.ChildNodes = new List<Node>();
+        }
+        //Create a child node to iterate at the child
+        Node child = new Node
+        {
+            boardState = root.boardState
+        };
+        //Out of bounds checking for child node. If this occurs, then it returns -1,-1, meaning unsolvable
+        if (root.Index.Y == 9)
+        {
+            root.Index.X++;
+            if (root.Index.X == 9)
+            {
+                return new int[,]{{-1,-1}};
+            }
+
+            root.Index.Y = 0;
+            child.Index.X = root.Index.X + 1;
+            child.Index.Y = 0;
+        }
+        else
+        {
+            child.Index.Y = root.Index.Y + 1;
+        }
+        //Check to see if the value of the root was input/does not need to change(increment) and flags it is unchangeable
+        if (Board[root.Index.X, root.Index.Y] != 0)
+        {
+            root.IsIteratable = false;
+        }
+        //If the root's value is 0, then iterate at the root, going to 1
+        if (root.boardState[root.Index.X, root.Index.Y] == 0 &&
+            Board[root.Index.X, root.Index.Y] == 0)
+        {
+            root.boardState[root.Index.X, root.Index.Y]++;
+            return Iterate(root);
+        }
+        
+        //Checks the legality of the root's value with Column, Row, and Square.
+        if (!ValidateValue(root.boardState, root.boardState[root.Index.X,root.Index.Y], root.Index.X,root.Index.Y))
+        {
+            if (root.boardState[root.Index.X, root.Index.Y] == 9)
+            {
+                root.IsCollapsed = true;
+                return root.boardState;
+            }
+            root.boardState[root.Index.X, root.Index.Y]++;
+            return Iterate(child);
+        }
+
+        return root.boardState;
+    }
+}
+
+public class Node
+{
+    public int[,] boardState;
+    public (int X, int Y) Index;
+    public (int X, int Y) ChildIndex;
+    public bool IsIteratable = true;
+    public bool IsSolved = false;
+    public bool IsCollapsed = false;
+    public List<Node>? ChildNodes;
 }
