@@ -1,4 +1,9 @@
-﻿namespace SudokuSolver;
+﻿using System.ComponentModel;
+using System.Data;
+using System.Reflection.Metadata.Ecma335;
+using System.Threading.Channels;
+
+namespace SudokuSolver;
 
 public class Program
 {
@@ -154,7 +159,7 @@ public class Program
         
     }
 
-    private static bool isRowValid(int[,] board, int value, int row)
+    private static bool IsRowValid(int[,] board, int value, int row)
     {
         for (int i = 0; i < 9; i++)
         {
@@ -167,7 +172,7 @@ public class Program
         return true;
     }
 
-    public static bool isColValid(int[,] board, int value, int col)
+    private static bool IsColValid(int[,] board, int value, int col)
     {
         for (int i = 0; i < 9; i++)
         {
@@ -180,7 +185,7 @@ public class Program
         return true;
     }
 
-    public static bool isSquareValid(int[,] board, int value, int square)
+    private static bool IsSquareValid(int[,] board, int value, int square)
     {
         //Square's x and y
         int x = 0;
@@ -233,13 +238,9 @@ public class Program
 
     public static bool ValidateValue(int[,] board, int value, int row, int col)
     {
-        if (!isColValid(board, value, col)||
-            !isRowValid(board, value, row)||
-            !isSquareValid(board, value, NumberSquareQuadrant(row, col)))
-        {
-            return false;
-        }
-        return true;
+        return IsColValid(board, value, col) &&
+               IsRowValid(board, value, row) &&
+               IsSquareValid(board, value, NumberSquareQuadrant(row, col));
     }
     
     public static void Seed(int[,] board)
@@ -289,9 +290,9 @@ public class Program
         {
             for (int j = 0; j < 9; j++)
             {
-                if (!isColValid(board, board[i, j], j) ||
-                    !isRowValid(board, board[i, j], i) ||
-                    !isSquareValid(board, board[i, j], NumberSquareQuadrant(i, j)))
+                if (!IsColValid(board, board[i, j], j) ||
+                    !IsRowValid(board, board[i, j], i) ||
+                    !IsSquareValid(board, board[i, j], NumberSquareQuadrant(i, j)))
                 {
                     return false;
                 }
@@ -304,63 +305,67 @@ public class Program
     public static int[,] Iterate(Node root)
     {
         Console.WriteLine($"Iterating at {root.Index.X}, {root.Index.Y}");
-        //Check to see if the root was solved
+        PrintBoard(root.boardState);
+        //Check to see if the root was solved(There is no 0s left and no repeating numbers in the col, row, and square)
         if (root.IsSolved)
         {
             return root.boardState;
         }
-        //Create a new list of child Nodes
-        if (root.ChildNodes == null)
+        //If the current root value is zero, increment
+        if (root.GetNodeBoardStateValue(root) == 0)
         {
-            root.ChildNodes = new List<Node>();
-        }
-        //Create a child node to iterate at the child
-        Node child = new Node
-        {
-            boardState = root.boardState
-        };
-        //Out of bounds checking for child node. If this occurs, then it returns -1,-1, meaning unsolvable
-        if (root.Index.Y == 9)
-        {
-            root.Index.X++;
-            if (root.Index.X == 9)
-            {
-                return new int[,]{{-1,-1}};
-            }
-
-            root.Index.Y = 0;
-            child.Index.X = root.Index.X + 1;
-            child.Index.Y = 0;
-        }
-        else
-        {
-            child.Index.Y = root.Index.Y + 1;
-        }
-        //Check to see if the value of the root was input/does not need to change(increment) and flags it is unchangeable
-        if (Board[root.Index.X, root.Index.Y] != 0)
-        {
-            root.IsIteratable = false;
-        }
-        //If the root's value is 0, then iterate at the root, going to 1
-        if (root.boardState[root.Index.X, root.Index.Y] == 0 &&
-            Board[root.Index.X, root.Index.Y] == 0)
-        {
-            root.boardState[root.Index.X, root.Index.Y]++;
-            return Iterate(root);
+            root.IncrementNodeBoardStateValue(root);
+            Iterate(root);
         }
         
-        //Checks the legality of the root's value with Column, Row, and Square.
-        if (!ValidateValue(root.boardState, root.boardState[root.Index.X,root.Index.Y], root.Index.X,root.Index.Y))
+        
+        //Set bool to if the root is iterable
+        root.IsIteratable = Board[root.Index.X, root.Index.Y] != 0;
+        
+        //Check if the root is collapsed and iterable
+        // If it is both, then create a root node of the value incremented (value = value + 1) 
+        if (root.IsCollapsed&&root.IsIteratable)
         {
-            if (root.boardState[root.Index.X, root.Index.Y] == 9)
+            if (root.GetNodeBoardStateValue(root) == 9)
             {
-                root.IsCollapsed = true;
                 return root.boardState;
             }
-            root.boardState[root.Index.X, root.Index.Y]++;
-            return Iterate(child);
+
+            root.IncrementNodeBoardStateValue(root);
+            Iterate(root);
+        }
+        
+        //Check if the root is valid (no unique numbers, ignoring 0s)
+        bool isRootValid =
+            ValidateValue(root.boardState, root.GetNodeBoardStateValue(root), root.Index.X, root.Index.Y);
+        //if the root value is not valid, then we must iterate if possible, or we must return to the previous root
+        if (isRootValid && root.IsIteratable)
+        {
+            if (root.GetNodeBoardStateValue(root) < 9)
+            {
+                root.IncrementNodeBoardStateValue(root);
+                Iterate(root);
+            }
+        }
+        
+
+        if (!isRootValid && !root.IsIteratable)
+        {
+            return root.boardState;
+        }
+        
+
+        if (!root.IsIteratable)
+        {
+            return root.boardState;
         }
 
+        Console.WriteLine("Returning");
+        if (ValidateBoard(root.boardState))
+        {
+            root.IsSolved = true;
+            Iterate(root);
+        }
         return root.boardState;
     }
 }
@@ -374,4 +379,14 @@ public class Node
     public bool IsSolved = false;
     public bool IsCollapsed = false;
     public List<Node>? ChildNodes;
+
+    public int GetNodeBoardStateValue(Node node)
+    {
+        return node.boardState[node.Index.X, node.Index.Y];
+    }
+
+    public void IncrementNodeBoardStateValue(Node node)
+    {
+        node.boardState[node.Index.X, node.Index.Y]++;
+    }
 }
