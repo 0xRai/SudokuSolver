@@ -1,13 +1,9 @@
-﻿using System.ComponentModel;
-using System.Data;
-using System.Reflection.Metadata.Ecma335;
-using System.Threading.Channels;
-
-namespace SudokuSolver;
+﻿namespace SudokuSolver;
 
 public class Program
 {
     private static readonly int[,] Board = NewBoard();
+    public static int[,] SolvedBoard = NewBoard();
 
     public static void Main(string[] args)
     {
@@ -28,8 +24,9 @@ public class Program
         Seed(Board);
         PrintBoard(Board);
         Console.WriteLine("Solving...");
-        int[,] solvedBoard = SolveBoard();
-        isSolvable = ValidateBoard(solvedBoard);
+        SolvedBoard = SolveBoard();
+        
+        isSolvable = ValidateBoard(SolvedBoard);
         if (isSolvable)
         {
             Console.BackgroundColor = ConsoleColor.Green;
@@ -155,7 +152,7 @@ public class Program
         //(x: 0, y: 0) and then set pointers to child's index (x: 0, y: 1)
         Node root = new Node
         {
-            boardState = Board
+            boardState = Node.CopyBoardState(Board)
         };
         root.Index.X = 0;
         root.Index.Y = 0;
@@ -253,6 +250,12 @@ public class Program
                IsRowValid(board, value, row, col) &&
                IsSquareValid(board, value, NumberSquareQuadrant(row, col), row, col);
     }
+    
+    public static bool ValidateValue(Tuple<int[,], int, int, int> tuple){
+        return IsColValid(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4) &&
+               IsRowValid(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4) &&
+               IsSquareValid(tuple.Item1, tuple.Item2, NumberSquareQuadrant(tuple.Item3, tuple.Item4), tuple.Item3, tuple.Item4);
+    }
 
     public static int[,] ValidationSeed()
     {
@@ -345,149 +348,189 @@ public class Program
         return true;
     }
 
-    public static int[,] Iterate(Node root)
+    public static int[,] Iterate(Node root, bool isSolved = false, int[,] solvedBoard = null)
     {
-        Console.WriteLine($"Iterating at {root.Index.X}, {root.Index.Y}");
-        PrintBoard(root.boardState);
-        //Check to see if the root was solved(There is no 0s left and no repeating numbers in the col, row, and square)
-        if (root.IsSolved)
+        while (!isSolved)
         {
-            return root.boardState;
-        }
-
-        //If the current root value is zero, increment
-        if (root.GetNodeBoardStateValue(root) == 0)
-        {
-            root.IncrementNodeBoardStateValue(root);
-            Iterate(root);
-        }
-
-
-        //Set bool to if the root is iterable
-        root.IsIteratable = Board[root.Index.X, root.Index.Y] != 0;
-
-        //Check if the root is collapsed and iterable
-        // If it is both, then create a root node of the value incremented (value = value + 1) 
-        if (root.IsCollapsed && root.IsIteratable)
-        {
-            if (root.GetNodeBoardStateValue(root) == 9)
+            Console.WriteLine($"Iterating at {root.Index.X}, {root.Index.Y}");
+            PrintBoard(root.boardState);
+            //Check to see if the root was solved(There is no 0s left and no repeating numbers in the col, row, and square)
+            if (root.IsSolved)
             {
                 return root.boardState;
             }
 
-            Node incrementRoot = root;
-            incrementRoot.ChildNodes = null;
-            incrementRoot.IsCollapsed = false;
-            incrementRoot.IncrementNodeBoardStateValue(incrementRoot);
-            Iterate(incrementRoot);
-        }
+            if (ValidateBoard(root.boardState) && IsBoardFull(root.boardState))
+            {
+                Console.WriteLine("SOLVED!!!");
+                solvedBoard = Node.CopyBoardState(root.boardState);
+                System.Threading.Thread.Sleep(5000);
+                root.IsSolved = true;
+                root.IsCollapsed = true;
+                root.IsIteratable = false;
+                Iterate(root);
 
-        //Check if the root is valid (no unique numbers, ignoring 0s)
-        bool isRootValid =
-            ValidateValue(root.boardState, root.GetNodeBoardStateValue(root), root.Index.X, root.Index.Y);
-        //if the root value is not valid, then we must iterate if possible, or we must return to the previous root
-        if (!isRootValid && root.IsIteratable)
-        {
-            if (root.GetNodeBoardStateValue(root) < 9)
+            }
+
+            //If the current root value is zero, increment
+            if (root.GetNodeBoardStateValue(root) == 0)
             {
                 root.IncrementNodeBoardStateValue(root);
                 Iterate(root);
             }
 
-            if (root.GetNodeBoardStateValue(root) == 9)
-            {
-                return root.boardState;
-            }
-        }
 
-        
-        if (!isRootValid && !root.IsIteratable)
-        {
-            return root.boardState;
-        }
-        //if root is valid but not solved, then we must setup to go to a lower depth
-        Node child;
-        // Check to see if there is any list of Child nodes
-        if (root.ChildNodes == null)
-        {
-            child = new Node
+            //Set bool to if the root is iterable
+            root.IsIteratable = Board[root.Index.X, root.Index.Y] == 0;
+
+            //Check if the root is collapsed and iterable
+            // If it is both, then create a root node of the value incremented (value = value + 1) 
+            if (root.IsCollapsed && root.IsIteratable)
             {
-                boardState = root.boardState
-            };
-            //Set the new x and y pointers and verifies that is not out of range of [8,8]
-            if (root.Index.Y == 8)
-            {
-                if (root.Index.X == 8)
+                if (root.GetNodeBoardStateValue(root) >= 9)
                 {
-                    return new int[,] { { -1, -1 } }; // Shows that the pointers are at [8,8] and cannot go further
+                    return root.boardState;
                 }
 
-                child.Index.X = root.Index.X + 1;
-                child.Index.Y = 0;
-            }
-            else
-            {
-                child.Index.X = root.Index.X;
-                child.Index.Y = root.Index.Y + 1;
+
+                Node incrementRoot = root;
+                incrementRoot.boardState = Node.CopyBoardState(root.boardState);
+                incrementRoot.ChildNodes = null;
+                incrementRoot.IsCollapsed = false;
+                if (incrementRoot.GetNodeBoardStateValue(incrementRoot) >= 9)
+                {
+                    return root.boardState;
+                }
+
+                incrementRoot.IncrementNodeBoardStateValue(incrementRoot);
+                Iterate(incrementRoot);
             }
 
-            root.ChildNodes = new List<Node> { child };
-            Iterate(child);
+            //Check if the root is valid (no unique numbers, ignoring 0s)
+            bool isRootValid =
+                ValidateValue(root.boardState, root.GetNodeBoardStateValue(root), root.Index.X, root.Index.Y);
+            //if the root value is not valid, then we must iterate if possible, or we must return to the previous root
+            if (!isRootValid && root.IsIteratable)
+            {
+                if (root.GetNodeBoardStateValue(root) < 9)
+                {
+                    root.IncrementNodeBoardStateValue(root);
+                    Iterate(root);
+                }
 
-        }
-        else // If the childNode list exists, then the current child will be the last child indexed in the list
-        {
-            child = root.ChildNodes[^1];
-        }
-        //Check to see if child Node is valid, if not then we must increment if iterable
-        bool isChildValid = ValidateValue(child.boardState, child.GetNodeBoardStateValue(child), child.Index.X,
-            child.Index.Y);
-        child.IsIteratable = Board[child.Index.X, child.Index.Y] != 0;
-        //If the child node is invalid and iterable, then we can add an increment child node and reiterate root
-        if (!isChildValid && child.IsIteratable)
-        {
-            Node incrementChild = child;
-            incrementChild.ChildNodes = null;
-            if (incrementChild.GetNodeBoardStateValue(incrementChild) < 9)
-            {
-                incrementChild.IncrementNodeBoardStateValue(incrementChild);
-                Iterate(incrementChild);
+                if (root.GetNodeBoardStateValue(root) >= 9)
+                {
+                    root.IsCollapsed = true;
+                    return root.boardState;
+                }
             }
-            //If the next child would be over 9, then the root is collapsed and cannot go further
-            if (incrementChild.GetNodeBoardStateValue(incrementChild) == 9)
+
+
+            if (!isRootValid && !root.IsIteratable)
             {
-                root.IsCollapsed = true;
                 return root.boardState;
             }
-            
-        }
-        //If the child is valid and not collapsed, then we lower the depth
-        if (isChildValid && !child.IsCollapsed)
-        {
-            Iterate(child);
-        }
-        
 
-        if (!root.IsIteratable)
-        {
+            //if root is valid but not solved, then we must setup to go to a lower depth
+            Node child;
+            // Check to see if there is any list of Child nodes
+            if (root.ChildNodes == null)
+            {
+                child = new Node
+                {
+                    boardState = Node.CopyBoardState(root.boardState)
+                };
+                //Set the new x and y pointers and verifies that is not out of range of [8,8]
+                if (root.Index.Y == 8)
+                {
+                    if (root.Index.X == 8)
+                    {
+                        return new int[,] { { -1, -1 } }; // Shows that the pointers are at [8,8] and cannot go further
+                    }
+
+                    child.Index.X = root.Index.X + 1;
+                    child.Index.Y = 0;
+                }
+                else
+                {
+                    child.Index.X = root.Index.X;
+                    child.Index.Y = root.Index.Y + 1;
+                }
+
+                root.ChildNodes = new List<Node> { child };
+                Iterate(child);
+
+            }
+            else // If the childNode list exists, then the current child will be the last child indexed in the list
+            {
+                child = root.ChildNodes[^1];
+            }
+
+            //Check to see if child Node is valid, if not then we must increment if iterable
+            bool isChildValid = ValidateValue(child.boardState, child.GetNodeBoardStateValue(child), child.Index.X,
+                child.Index.Y);
+            child.IsIteratable = Board[child.Index.X, child.Index.Y] != 0;
+            //If the child node is invalid and iterable, then we can add an increment child node and reiterate root
+            if (!isChildValid && child.IsIteratable)
+            {
+                Node incrementChild = child;
+                incrementChild.ChildNodes = null;
+                if (incrementChild.GetNodeBoardStateValue(incrementChild) < 9)
+                {
+                    incrementChild.IncrementNodeBoardStateValue(incrementChild);
+                    Iterate(incrementChild);
+                }
+
+                //If the next child would be over 9, then the root is collapsed and cannot go further
+                if (incrementChild.GetNodeBoardStateValue(incrementChild) >= 9)
+                {
+                    root.IsCollapsed = true;
+                    return root.boardState;
+                }
+
+            }
+
+            //If the child is valid and not collapsed, then we lower the depth
+            if (isChildValid && !child.IsCollapsed)
+            {
+                Iterate(child);
+            }
+
+
+            if (!root.IsIteratable)
+            {
+                return root.boardState;
+            }
+
+            if (root.IsIteratable)
+            {
+                Node incrementRoot = root;
+                incrementRoot.boardState = Node.CopyBoardState(root.boardState);
+                incrementRoot.ChildNodes = null;
+                incrementRoot.IsCollapsed = false;
+                if (incrementRoot.GetNodeBoardStateValue(incrementRoot) >= 9)
+                {
+                    return root.boardState;
+                }
+
+                incrementRoot.IncrementNodeBoardStateValue(incrementRoot);
+                Iterate(incrementRoot);
+            }
+
+            Console.WriteLine("Returning");
+            if (ValidateBoard(root.boardState))
+            {
+                Console.WriteLine("SOLVED!!!");
+                System.Threading.Thread.Sleep(60000);
+                root.IsSolved = true;
+                Iterate(root);
+
+            }
+
             return root.boardState;
         }
 
-        if (root.IsIteratable)
-        {
-            Node incrementRoot = root;
-            incrementRoot.ChildNodes = null;
-            incrementRoot.IsCollapsed = false;
-            incrementRoot.IncrementNodeBoardStateValue(incrementRoot);
-            Iterate(incrementRoot);
-        }
-
-        Console.WriteLine("Returning");
-        if (!ValidateBoard(root.boardState)) return root.boardState;
-        root.IsSolved = true;
-        Iterate(root);
-
-        return root.boardState;
+        return solvedBoard;
     }
 }
 
@@ -509,5 +552,24 @@ public class Node
     public void IncrementNodeBoardStateValue(Node node)
     {
         node.boardState[node.Index.X, node.Index.Y]++;
+    }
+
+    public Tuple<int[,], int, int, int> PassNodeValue(Node node)
+    {
+        return Tuple.Create(node.boardState, node.GetNodeBoardStateValue(node), node.Index.X, node.Index.Y);
+    }
+
+    public static int[,] CopyBoardState(int[,] board)
+    {
+        int[,] newBoard = new int[9, 9];
+        for (int i = 0; i < board.GetLength(0); i++)
+        {
+            for (int j = 0; j < board.GetLength(1); j++)
+            {
+                newBoard[i, j] = board[i, j];
+            }
+        }
+
+        return newBoard;
     }
 }
