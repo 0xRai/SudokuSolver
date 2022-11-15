@@ -1,47 +1,35 @@
-﻿namespace SudokuSolver;
+﻿using static SudokuSolver.Seed;
+
+namespace SudokuSolver;
 
 public class Program
 {
-    private static readonly int[,] Board = NewBoard();
-    public static int[,] SolvedBoard = NewBoard();
+    private static int[,] _board = NewBoard();
+    private static int[,] _solvedBoard = NewBoard();
 
     public static void Main(string[] args)
     {
         //show empty board
-        PrintBoard(Board);
+        PrintBoard(_board);
         
-        bool isSeedValidation = ValidateBoard(ValidationSeed());
-        Console.WriteLine(isSeedValidation);
-
         //user inputs known numbers
         // InputNumbers(board);
         Console.WriteLine("Validating board...");
-        bool isSolvable = ValidateBoard(Board);
+        bool isSolvable = ValidateBoard(_board);
 
 
         //Verifies if user did not inputted a VALID
-
-        Seed(Board);
-        PrintBoard(Board);
-        Console.WriteLine("Solving...");
-        SolvedBoard = SolveBoard();
         
-        isSolvable = ValidateBoard(SolvedBoard);
-        if (isSolvable)
-        {
-            Console.BackgroundColor = ConsoleColor.Green;
-            Console.Write("SOLVED!");
-            Console.ResetColor();
-            Console.WriteLine();
-            PrintBoard(Board);
-        }
-        else
-        {
-            Console.BackgroundColor = ConsoleColor.Red;
-            Console.Write("Board is not solvable!");
-            Console.ResetColor();
-            Console.WriteLine();
-        }
+        PrintBoard(_board);
+        _board = FirstSeed();
+        Console.WriteLine("Solving...");
+        _solvedBoard = SolveBoard(_board);
+
+        Console.BackgroundColor = ConsoleColor.Red;
+        Console.Write("Board is not solvable!");
+        Console.ResetColor();
+        Console.WriteLine();
+        Environment.Exit(0);
     }
 
     private static int[,] NewBoard()
@@ -146,13 +134,13 @@ public class Program
     /// Function <c>SolveBoard</c> takes the inputted board, transfers to the Root Node and solves through
     /// Binary Search Tree
     /// </summary>
-    private static int[,] SolveBoard()
+    private static int[,] SolveBoard(int[,] board)
     {
         //Creates the root node from the input and then sets to start from beginning
         //(x: 0, y: 0) and then set pointers to child's index (x: 0, y: 1)
         Node root = new Node
         {
-            boardState = Node.CopyBoardState(Board)
+            boardState = Node.CopyBoardState(board)
         };
         root.Index.X = 0;
         root.Index.Y = 0;
@@ -250,65 +238,31 @@ public class Program
                IsRowValid(board, value, row, col) &&
                IsSquareValid(board, value, NumberSquareQuadrant(row, col), row, col);
     }
-    
-    public static bool ValidateValue(Tuple<int[,], int, int, int> tuple){
+
+    public static bool ValidateValue(Tuple<int[,], int, int, int> tuple)
+    {
         return IsColValid(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4) &&
                IsRowValid(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4) &&
-               IsSquareValid(tuple.Item1, tuple.Item2, NumberSquareQuadrant(tuple.Item3, tuple.Item4), tuple.Item3, tuple.Item4);
+               IsSquareValid(tuple.Item1, tuple.Item2, NumberSquareQuadrant(tuple.Item3, tuple.Item4), tuple.Item3,
+                   tuple.Item4);
     }
-
-    public static int[,] ValidationSeed()
+    
+    public static bool ValidateBoard(int[,] board)
     {
-        int[,] seed = new int[,]
+        for (int i = 0; i < 9; i++)
         {
-            { 4, 6, 7, 9, 2, 1, 3, 5, 8, }, { 8, 9, 5, 4, 7, 3, 2, 6, 1 }, { 2, 3, 1, 8, 6, 5, 7, 4, 9 },
-            { 5, 1, 3, 6, 9, 8, 4, 2, 7 }, { 9, 2, 8, 7, 5, 4, 6, 1, 3 }, { 7, 4, 6, 1, 3, 2, 9, 8, 5 },
-            { 3, 5, 4, 2, 8, 7, 1, 9, 6 }, { 1, 8, 9, 3, 4, 6, 5, 7, 2 }, { 6, 7, 2, 5, 1, 9, 8, 3, 4 }
-        };
-        return seed;
-    }
+            for (int j = 0; j < 9; j++)
+            {
+                if (!ValidateValue(board, board[i, j], i, j))
+                {
+                    return false;
+                }
+            }
+        }
 
-    public static void Seed(int[,] board)
-    {
-        //Hard coded seed
-        board[0, 2] = 4;
-        board[0, 6] = 8;
-        board[1, 0] = 7;
-        board[1, 1] = 2;
-        board[1, 3] = 3;
-        board[1, 4] = 5;
-        board[2, 4] = 4;
-        board[2, 5] = 7;
-        board[2, 8] = 3;
-        board[3, 0] = 4;
-        board[3, 1] = 8;
-        board[3, 5] = 1;
-        board[3, 6] = 3;
-        board[4, 1] = 6;
-        board[4, 2] = 7;
-        board[4, 6] = 1;
-        board[4, 8] = 2;
-        board[5, 3] = 5;
-        board[5, 8] = 7;
-        board[6, 1] = 7;
-        board[6, 2] = 3;
-        board[6, 3] = 8;
-        board[6, 4] = 1;
-        board[6, 5] = 5;
-        board[6, 7] = 4;
-        board[6, 8] = 9;
-        board[7, 0] = 8;
-        board[7, 1] = 9;
-        board[7, 2] = 2;
-        board[7, 4] = 7;
-        board[7, 5] = 6;
-        board[7, 7] = 3;
-        board[7, 8] = 1;
-        board[8, 3] = 2;
-        board[8, 7] = 6;
-        board[8, 8] = 8;
+        return true;
     }
-
+    
     public static int NumberSquareQuadrant(int x, int y)
     {
         int i = x / 3;
@@ -332,13 +286,13 @@ public class Program
         return true;
     }
 
-    public static bool ValidateBoard(int[,] board)
+    public static bool ValidateValueWithBoard(int[,] originalBoard, int[,] newBoard)
     {
         for (int i = 0; i < 9; i++)
         {
             for (int j = 0; j < 9; j++)
             {
-                if (!ValidateValue(board,board[i,j], i,j))
+                if (originalBoard[i, j] != newBoard[i, j] && originalBoard[i, j] != 0)
                 {
                     return false;
                 }
@@ -352,24 +306,24 @@ public class Program
     {
         while (!isSolved)
         {
-            Console.WriteLine($"Iterating at {root.Index.X}, {root.Index.Y}");
-            PrintBoard(root.boardState);
             //Check to see if the root was solved(There is no 0s left and no repeating numbers in the col, row, and square)
             if (root.IsSolved)
             {
                 return root.boardState;
             }
 
-            if (ValidateBoard(root.boardState) && IsBoardFull(root.boardState))
+            if (ValidateBoard(root.boardState) && IsBoardFull(root.boardState) && ValidateValueWithBoard(_board, root.boardState))
             {
-                Console.WriteLine("SOLVED!!!");
+                Console.Clear();
+                Console.BackgroundColor = ConsoleColor.Green;
+                Console.ForegroundColor = ConsoleColor.Black;
+                Console.Write("SOLVED!");
+                Console.WriteLine();
+                Console.ResetColor();
+                PrintBoard(root.boardState);
+                Console.ReadLine();
                 solvedBoard = Node.CopyBoardState(root.boardState);
-                System.Threading.Thread.Sleep(5000);
-                root.IsSolved = true;
-                root.IsCollapsed = true;
-                root.IsIteratable = false;
-                Iterate(root);
-
+                Environment.Exit(1);
             }
 
             //If the current root value is zero, increment
@@ -381,7 +335,7 @@ public class Program
 
 
             //Set bool to if the root is iterable
-            root.IsIteratable = Board[root.Index.X, root.Index.Y] == 0;
+            root.IsIteratable = _board[root.Index.X, root.Index.Y] == 0;
 
             //Check if the root is collapsed and iterable
             // If it is both, then create a root node of the value incremented (value = value + 1) 
@@ -459,7 +413,6 @@ public class Program
 
                 root.ChildNodes = new List<Node> { child };
                 Iterate(child);
-
             }
             else // If the childNode list exists, then the current child will be the last child indexed in the list
             {
@@ -469,7 +422,7 @@ public class Program
             //Check to see if child Node is valid, if not then we must increment if iterable
             bool isChildValid = ValidateValue(child.boardState, child.GetNodeBoardStateValue(child), child.Index.X,
                 child.Index.Y);
-            child.IsIteratable = Board[child.Index.X, child.Index.Y] != 0;
+            child.IsIteratable = _board[child.Index.X, child.Index.Y] != 0;
             //If the child node is invalid and iterable, then we can add an increment child node and reiterate root
             if (!isChildValid && child.IsIteratable)
             {
@@ -487,7 +440,6 @@ public class Program
                     root.IsCollapsed = true;
                     return root.boardState;
                 }
-
             }
 
             //If the child is valid and not collapsed, then we lower the depth
@@ -517,19 +469,19 @@ public class Program
                 Iterate(incrementRoot);
             }
 
-            Console.WriteLine("Returning");
             if (ValidateBoard(root.boardState))
             {
                 Console.WriteLine("SOLVED!!!");
                 System.Threading.Thread.Sleep(60000);
                 root.IsSolved = true;
                 Iterate(root);
-
             }
 
             return root.boardState;
         }
 
+        Console.WriteLine("Returning...");
+        PrintBoard(solvedBoard);
         return solvedBoard;
     }
 }
@@ -537,7 +489,9 @@ public class Program
 public class Node
 {
     public int[,] boardState;
+
     public (int X, int Y) Index;
+
     // public (int X, int Y) ChildIndex;
     public bool IsIteratable = true;
     public bool IsSolved = false;
