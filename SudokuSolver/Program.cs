@@ -9,19 +9,32 @@ public class Program
 
     public static void Main(string[] args)
     {
-        //show empty board
-        PrintBoard(_board);
-        
         //user inputs known numbers
-        // InputNumbers(board);
-        Console.WriteLine("Validating board...");
-        bool isSolvable = ValidateBoard(_board);
+        if (args.Length == 0)
+        {
+            //show empty board
+            PrintBoard(_board);
+            InputNumbers(_board);
+        }
 
+        if (args.Length == 1)
+        {
+            char[] charArr = args[0].ToCharArray();
+            if (charArr.Length == 81)
+            {
+                ConvertInputToBoard(charArr);
+            }
+            else
+            {
+                Console.WriteLine($"Invalid input: input is only {charArr.Length} characters long, input must be \n81 characters long");
+                Environment.Exit(0);
+            }
+        }
 
-        //Verifies if user did not inputted a VALID
-        
+        Console.WriteLine("Waiting 3 seconds");
         PrintBoard(_board);
-        _board = FirstSeed();
+        Thread.Sleep(3000);
+        
         Console.WriteLine("Solving...");
         _solvedBoard = SolveBoard(_board);
 
@@ -128,6 +141,30 @@ public class Program
         }
 
         Console.WriteLine("Solving Board...");
+    }
+
+    public static void ConvertInputToBoard(char[] charArr)
+    {
+        int x = 0;
+        bool isConverted;
+        for (int i = 0; i < 9; i++)
+        {
+            for (int j = 0; j < 9; j++)
+            {
+                int num;
+                isConverted = int.TryParse(charArr[x].ToString(), out num);
+                if (isConverted && num is < 10 and >= 0)
+                {
+                    _board[i, j] = num;
+                    x++;
+                }
+                else
+                {
+                    Console.WriteLine($"Invalid input: character \"{charArr[x]}\" is not a number");
+                    Environment.Exit(0);
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -321,8 +358,6 @@ public class Program
                 Console.WriteLine();
                 Console.ResetColor();
                 PrintBoard(root.boardState);
-                Console.ReadLine();
-                solvedBoard = Node.CopyBoardState(root.boardState);
                 Environment.Exit(1);
             }
 
