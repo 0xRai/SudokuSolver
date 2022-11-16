@@ -1,8 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "fuAADx72EAsfgeAysvWlY361oCTCohPz7SCV9W5kqU70FYAeVjXUZBqUo91gMaW1whpfxuFGfX0BWkAnFWalkA==",
+  "dgSpecHash": "z4CIhzYwAI2R01/vuWCEJ+1vbMyhHkGNE8z+MQpss1ZgMoxFIu4T1PH2Y+yPOx+7eENF5M2hwDA3yCpgaoIEtw==",
   "success": true,
-  "projectFilePath": "C:\\Users\\Rai\\RiderProjects\\SudokuSolver\\SudokuSolver\\SudokuSolver.csproj",
-  "expectedPackageFiles": [],
+  "projectFilePath": "/Users/roberthardy/Documents/Github/SudokuSolver/SudokuSolver/SudokuSolver.csproj",
+  "expectedPackageFiles": [
+    "/Users/roberthardy/.nuget/packages/microsoft.netcore.app.ref/6.0.11/microsoft.netcore.app.ref.6.0.11.nupkg.sha512",
+    "/Users/roberthardy/.nuget/packages/microsoft.aspnetcore.app.ref/6.0.11/microsoft.aspnetcore.app.ref.6.0.11.nupkg.sha512",
+    "/Users/roberthardy/.nuget/packages/microsoft.netcore.app.host.osx-arm64/6.0.11/microsoft.netcore.app.host.osx-arm64.6.0.11.nupkg.sha512"
+  ],
   "logs": []
 }
